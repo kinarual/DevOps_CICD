@@ -1,0 +1,67 @@
+stages:
+  - build
+  - style
+  - integration_tests
+  - deploy
+
+build_job:
+  stage: build
+  tags: 
+    - build
+  script:
+    - cd src/cat && make s21_cat
+    - cd ../grep && make s21_grep
+  artifacts:
+    paths:
+      - src/cat/s21_cat
+      - src/grep/s21_grep
+    expire_in: 30 days
+  after_script:
+    - chmod +x src/notify_bot.sh
+    - bash src/notify_bot.sh
+
+style_job:
+  stage: style
+  tags: 
+    - style
+  script:
+    - cd src
+    - chmod +x style_script.sh
+    - bash style_script.sh   
+  allow_failure: false
+  after_script:
+    - chmod +x src/notify_bot.sh
+    - bash src/notify_bot.sh
+
+test_job:
+  stage: integration_tests
+  tags:
+    - test
+  script:
+    - cd src
+    - chmod +x test_script.sh
+    - bash test_script.sh
+  dependencies:
+    - build_job
+    - style_job
+  when: on_success
+  after_script:
+    - chmod +x src/notify_bot.sh
+    - bash src/notify_bot.sh
+
+deploy_job:
+  stage: deploy
+  tags:
+    - deploy
+  script:
+    - cd src
+    - chmod +x deploy_script.sh
+    - bash deploy_script.sh
+  dependencies:
+    - build_job
+    - style_job
+    - test_job
+  when: manual
+  after_script:
+    - chmod +x src/notify_bot.sh
+    - bash src/notify_bot.sh
